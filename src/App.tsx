@@ -1,13 +1,14 @@
 import { useState } from 'react';
-import { LayoutDashboard, Package, ShoppingCart, Users, Building2 } from 'lucide-react';
+import { LayoutDashboard, Package, ShoppingCart, Users, Building2, FileText } from 'lucide-react';
 import Dashboard from './components/Dashboard';
 import Suppliers from './components/Suppliers';
 import Inventory from './components/Inventory';
 import Sales from './components/Sales';
 import Customers from './components/Customers';
+import PurchaseOrders from './components/PurchaseOrders';
 import { fr } from './lib/translations';
 
-type Page = 'dashboard' | 'suppliers' | 'inventory' | 'sales' | 'customers';
+type Page = 'dashboard' | 'suppliers' | 'purchase_orders' | 'inventory' | 'sales' | 'customers';
 
 function App() {
   const [currentPage, setCurrentPage] = useState<Page>('suppliers');
@@ -16,6 +17,7 @@ function App() {
   const navigation = [
     { id: 'dashboard', label: t.nav.dashboard, icon: LayoutDashboard },
     { id: 'suppliers', label: t.nav.suppliers, icon: Building2 },
+    { id: 'purchase_orders', label: 'Bons de commande', icon: FileText },
     { id: 'inventory', label: t.nav.inventory, icon: Package },
     { id: 'sales', label: t.nav.sales, icon: ShoppingCart },
     { id: 'customers', label: t.nav.customers, icon: Users },
@@ -27,6 +29,8 @@ function App() {
         return <Dashboard />;
       case 'suppliers':
         return <Suppliers />;
+      case 'purchase_orders':
+        return <PurchaseOrders />;
       case 'inventory':
         return <Inventory />;
       case 'sales':
