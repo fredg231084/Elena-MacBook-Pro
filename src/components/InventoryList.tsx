@@ -8,14 +8,17 @@ type InventoryItem = Database['public']['Tables']['inventory_items']['Row'] & {
   suppliers?: Database['public']['Tables']['suppliers']['Row'];
 };
 
+type InventoryTab = 'in_stock' | 'sold';
+
 interface InventoryListProps {
   searchTerm: string;
   statusFilter: string;
   refreshTrigger: number;
   onEdit: (item: InventoryItem) => void;
+  activeTab?: InventoryTab;
 }
 
-function InventoryList({ searchTerm, statusFilter, refreshTrigger, onEdit }: InventoryListProps) {
+function InventoryList({ searchTerm, statusFilter, refreshTrigger, onEdit, activeTab = 'in_stock' }: InventoryListProps) {
   const t = fr.inventory;
   const tc = fr.common;
   const [items, setItems] = useState<InventoryItem[]>([]);
@@ -25,7 +28,7 @@ function InventoryList({ searchTerm, statusFilter, refreshTrigger, onEdit }: Inv
 
   useEffect(() => {
     loadItems();
-  }, [searchTerm, statusFilter, refreshTrigger]);
+  }, [searchTerm, statusFilter, refreshTrigger, activeTab]);
 
   const loadItems = async () => {
     setLoading(true);
@@ -37,10 +40,21 @@ function InventoryList({ searchTerm, statusFilter, refreshTrigger, onEdit }: Inv
       `)
       .order('created_at', { ascending: false });
 
-    if (statusFilter !== 'all') {
-      query = query.eq('status', statusFilter);
+    // Tab filtering
+    if (activeTab === 'in_stock') {
+      // Show all items EXCEPT sold
+      query = query.neq('status', 'sold');
+      
+      // Additional status filter if not 'all'
+      if (statusFilter !== 'all') {
+        query = query.eq('status', statusFilter);
+      }
+    } else if (activeTab === 'sold') {
+      // Show only sold items
+      query = query.eq('status', 'sold');
     }
 
+    // Search filter
     if (searchTerm) {
       query = query.or(
         `item_id.ilike.%${searchTerm}%,serial_number.ilike.%${searchTerm}%,model_family.ilike.%${searchTerm}%`
@@ -145,6 +159,11 @@ function InventoryList({ searchTerm, statusFilter, refreshTrigger, onEdit }: Inv
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   {t.cost}
                 </th>
+                {activeTab === 'sold' && (
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Date vendu
+                  </th>
+                )}
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   {tc.status}
                 </th>
@@ -180,6 +199,11 @@ function InventoryList({ searchTerm, statusFilter, refreshTrigger, onEdit }: Inv
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                     ${item.purchase_cost.toFixed(2)}
                   </td>
+                  {activeTab === 'sold' && (
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      {item.sold_date ? new Date(item.sold_date).toLocaleDateString('fr-FR') : '-'}
+                    </td>
+                  )}
                   <td className="px-6 py-4 whitespace-nowrap">
                     {getStatusBadge(item.status)}
                   </td>
@@ -192,33 +216,39 @@ function InventoryList({ searchTerm, statusFilter, refreshTrigger, onEdit }: Inv
                       >
                         <Eye size={18} />
                       </button>
-                      <button
-                        onClick={() => onEdit(item)}
-                        className="text-blue-600 hover:text-blue-800"
-                        title={tc.edit}
-                      >
-                        <Edit2 size={18} />
-                      </button>
-                      <button
-                        onClick={() => handleDelete(item)}
-                        className={`${
-                          item.status === 'sold' 
-                            ? 'text-gray-400 cursor-not-allowed' 
-                            : 'text-red-600 hover:text-red-800'
-                        }`}
-                        title={item.status === 'sold' ? 'Impossible de supprimer (vendu)' : tc.delete}
-                        disabled={item.status === 'sold' || deletingItem?.id === item.id}
-                      >
-                        <Trash2 size={18} />
-                      </button>
+                      {activeTab === 'in_stock' && (
+                        <>
+                          <button
+                            onClick={() => onEdit(item)}
+                            className="text-blue-600 hover:text-blue-800"
+                            title={tc.edit}
+                          >
+                            <Edit2 size={18} />
+                          </button>
+                          <button
+                            onClick={() => handleDelete(item)}
+                            className={`${
+                              item.status === 'sold' 
+                                ? 'text-gray-400 cursor-not-allowed' 
+                                : 'text-red-600 hover:text-red-800'
+                            }`}
+                            title={item.status === 'sold' ? 'Impossible de supprimer (vendu)' : tc.delete}
+                            disabled={item.status === 'sold' || deletingItem?.id === item.id}
+                          >
+                            <Trash2 size={18} />
+                          </button>
+                        </>
+                      )}
                     </div>
                   </td>
                 </tr>
               ))}
               {items.length === 0 && (
                 <tr>
-                  <td colSpan={7} className="px-6 py-8 text-center text-gray-500">
-                    {t.noItems}
+                  <td colSpan={activeTab === 'sold' ? 8 : 7} className="px-6 py-8 text-center text-gray-500">
+                    {activeTab === 'sold' 
+                      ? 'Aucun article vendu trouvé.' 
+                      : t.noItems}
                   </td>
                 </tr>
               )}
@@ -318,6 +348,13 @@ function InventoryList({ searchTerm, statusFilter, refreshTrigger, onEdit }: Inv
                 <label className="text-sm font-medium text-gray-500">{t.purchaseDate}</label>
                 <p className="text-gray-900">{new Date(selectedItem.purchase_date).toLocaleDateString('fr-FR')}</p>
               </div>
+
+              {selectedItem.sold_date && (
+                <div>
+                  <label className="text-sm font-medium text-gray-500">Date vendu</label>
+                  <p className="text-gray-900">{new Date(selectedItem.sold_date).toLocaleDateString('fr-FR')}</p>
+                </div>
+              )}
 
               <div className="col-span-2">
                 <label className="text-sm font-medium text-gray-500">{t.conditionSummary}</label>

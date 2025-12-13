@@ -9,6 +9,8 @@ import { fr } from '../lib/translations';
 type Supplier = Database['public']['Tables']['suppliers']['Row'];
 type InventoryItem = Database['public']['Tables']['inventory_items']['Row'];
 
+type InventoryTab = 'in_stock' | 'sold';
+
 function Inventory() {
   const t = fr.inventory;
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
@@ -17,6 +19,7 @@ function Inventory() {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [refreshTrigger, setRefreshTrigger] = useState(0);
+  const [activeTab, setActiveTab] = useState<InventoryTab>('in_stock');
 
   useEffect(() => {
     loadSuppliers();
@@ -52,15 +55,32 @@ function Inventory() {
     setEditingItem(null);
   };
 
-  const statusOptions = [
-    { value: 'all', label: t.allStatus },
-    { value: 'in_stock', label: t.inStock },
-    { value: 'sold', label: t.sold },
-    { value: 'reserved', label: t.reserved },
-    { value: 'returned', label: t.returned },
-    { value: 'doa', label: t.doa },
-    { value: 'personal_use', label: t.personalUse },
-  ];
+  const handleTabChange = (tab: InventoryTab) => {
+    setActiveTab(tab);
+    setStatusFilter('all'); // Reset filter when changing tabs
+    setSearchTerm(''); // Reset search when changing tabs
+  };
+
+  // Status options based on active tab
+  const getStatusOptions = () => {
+    if (activeTab === 'in_stock') {
+      return [
+        { value: 'all', label: t.allStatus },
+        { value: 'in_stock', label: t.inStock },
+        { value: 'reserved', label: t.reserved },
+        { value: 'returned', label: t.returned },
+        { value: 'doa', label: t.doa },
+        { value: 'personal_use', label: t.personalUse },
+      ];
+    } else {
+      return [
+        { value: 'all', label: t.allStatus },
+        { value: 'sold', label: t.sold },
+      ];
+    }
+  };
+
+  const statusOptions = getStatusOptions();
 
   return (
     <div className="p-8 bg-white min-h-screen">
@@ -92,6 +112,34 @@ function Inventory() {
             onSuccess={handleItemSaved}
           />
         )}
+
+        {/* Tabs */}
+        <div className="mb-6">
+          <div className="border-b border-gray-200">
+            <nav className="flex -mb-px space-x-8">
+              <button
+                onClick={() => handleTabChange('in_stock')}
+                className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
+                  activeTab === 'in_stock'
+                    ? 'border-blue-600 text-blue-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                }`}
+              >
+                📦 En stock
+              </button>
+              <button
+                onClick={() => handleTabChange('sold')}
+                className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
+                  activeTab === 'sold'
+                    ? 'border-blue-600 text-blue-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                }`}
+              >
+                ✅ Vendus
+              </button>
+            </nav>
+          </div>
+        </div>
 
         <div className="bg-white border border-gray-200 rounded-lg p-4 mb-6">
           <div className="flex gap-4 flex-wrap">
@@ -129,6 +177,7 @@ function Inventory() {
           statusFilter={statusFilter}
           refreshTrigger={refreshTrigger}
           onEdit={handleEdit}
+          activeTab={activeTab}
         />
 
         <footer className="mt-8 text-center text-sm text-gray-500">
