@@ -43,12 +43,28 @@ export interface Database {
           purchase_date: string;
           status: string;
           sold_date: string | null;
+          po_id: string | null;
           notes: string | null;
           created_at: string;
           updated_at: string;
         };
         Insert: Omit<Database['public']['Tables']['inventory_items']['Row'], 'id' | 'created_at' | 'updated_at'>;
         Update: Partial<Database['public']['Tables']['inventory_items']['Insert']>;
+      };
+      purchase_orders: {
+        Row: {
+          id: string;
+          po_number: string;
+          supplier_id: string;
+          order_date: string;
+          expected_delivery_date: string | null;
+          status: string;
+          total_amount: number | null;
+          notes: string | null;
+          created_at: string;
+        };
+        Insert: Omit<Database['public']['Tables']['purchase_orders']['Row'], 'id' | 'created_at'>;
+        Update: Partial<Database['public']['Tables']['purchase_orders']['Insert']>;
       };
       customers: {
         Row: {

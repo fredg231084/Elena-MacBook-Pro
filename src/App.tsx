@@ -5,18 +5,20 @@ import Suppliers from './components/Suppliers';
 import Inventory from './components/Inventory';
 import Sales from './components/Sales';
 import Customers from './components/Customers';
+import { fr } from './lib/translations';
 
 type Page = 'dashboard' | 'suppliers' | 'inventory' | 'sales' | 'customers';
 
 function App() {
-  const [currentPage, setCurrentPage] = useState<Page>('dashboard');
+  const [currentPage, setCurrentPage] = useState<Page>('suppliers');
+  const t = fr;
 
   const navigation = [
-    { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
-    { id: 'suppliers', label: 'Suppliers', icon: Building2 },
-    { id: 'inventory', label: 'Inventory', icon: Package },
-    { id: 'sales', label: 'Sales', icon: ShoppingCart },
-    { id: 'customers', label: 'Customers', icon: Users },
+    { id: 'dashboard', label: t.nav.dashboard, icon: LayoutDashboard },
+    { id: 'suppliers', label: t.nav.suppliers, icon: Building2 },
+    { id: 'inventory', label: t.nav.inventory, icon: Package },
+    { id: 'sales', label: t.nav.sales, icon: ShoppingCart },
+    { id: 'customers', label: t.nav.customers, icon: Users },
   ];
 
   const renderPage = () => {
@@ -38,10 +40,10 @@ function App() {
 
   return (
     <div className="flex h-screen bg-gray-50">
-      <aside className="w-64 bg-gray-900 text-white flex flex-col">
-        <div className="p-6 border-b border-gray-700">
-          <h1 className="text-2xl font-bold">MacBook Depot</h1>
-          <p className="text-sm text-gray-400 mt-1">Inventory Management</p>
+      <aside className="w-64 bg-[#1a1d29] text-white flex flex-col">
+        <div className="p-6 border-b border-gray-800">
+          <h1 className="text-xl font-bold">MacBook Depot</h1>
+          <p className="text-xs text-gray-400 mt-1">Inventory Management</p>
         </div>
 
         <nav className="flex-1 p-4">

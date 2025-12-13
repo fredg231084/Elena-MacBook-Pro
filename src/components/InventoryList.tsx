@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Edit2, Eye } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import type { Database } from '../lib/database.types';
+import { fr } from '../lib/translations';
 
 type InventoryItem = Database['public']['Tables']['inventory_items']['Row'] & {
   suppliers?: Database['public']['Tables']['suppliers']['Row'];
@@ -11,9 +12,12 @@ interface InventoryListProps {
   searchTerm: string;
   statusFilter: string;
   refreshTrigger: number;
+  onEdit: (item: InventoryItem) => void;
 }
 
-function InventoryList({ searchTerm, statusFilter, refreshTrigger }: InventoryListProps) {
+function InventoryList({ searchTerm, statusFilter, refreshTrigger, onEdit }: InventoryListProps) {
+  const t = fr.inventory;
+  const tc = fr.common;
   const [items, setItems] = useState<InventoryItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedItem, setSelectedItem] = useState<InventoryItem | null>(null);
@@ -54,56 +58,65 @@ function InventoryList({ searchTerm, statusFilter, refreshTrigger }: InventoryLi
 
   const getStatusBadge = (status: string) => {
     const statusColors: Record<string, string> = {
-      in_stock: 'bg-green-100 text-green-800',
-      sold: 'bg-blue-100 text-blue-800',
-      reserved: 'bg-yellow-100 text-yellow-800',
-      returned: 'bg-orange-100 text-orange-800',
-      doa: 'bg-red-100 text-red-800',
-      personal_use: 'bg-purple-100 text-purple-800',
+      in_stock: 'bg-green-100 text-green-700',
+      sold: 'bg-blue-100 text-blue-700',
+      reserved: 'bg-yellow-100 text-yellow-700',
+      returned: 'bg-orange-100 text-orange-700',
+      doa: 'bg-red-100 text-red-700',
+      personal_use: 'bg-purple-100 text-purple-700',
+    };
+
+    const statusLabels: Record<string, string> = {
+      in_stock: t.inStock,
+      sold: t.sold,
+      reserved: t.reserved,
+      returned: t.returned,
+      doa: t.doa,
+      personal_use: t.personalUse,
     };
 
     return (
-      <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${statusColors[status] || 'bg-gray-100 text-gray-800'}`}>
-        {status.replace('_', ' ').toUpperCase()}
+      <span className={`inline-flex px-3 py-1 text-xs font-medium rounded-full ${statusColors[status] || 'bg-gray-100 text-gray-700'}`}>
+        {statusLabels[status] || status}
       </span>
     );
   };
 
   if (loading) {
     return (
-      <div className="bg-white rounded-lg shadow-md p-8 text-center">
-        <p className="text-gray-500">Loading inventory...</p>
+      <div className="bg-white border border-gray-200 rounded-lg p-8 text-center">
+        <p className="text-gray-500">{tc.loading}...</p>
       </div>
     );
   }
 
   return (
     <>
-      <div className="bg-white rounded-lg shadow-md overflow-hidden">
+      <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full">
-            <thead className="bg-gray-50">
+            <thead className="bg-gray-50 border-b border-gray-200">
               <tr>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Item ID
+                  {t.itemId}
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Model
+                  {t.model}
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Specs
+                  {t.specs}
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Condition
+                  {t.condition}
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Cost
+                  {t.cost}
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Status
+                  {tc.status}
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Actions
+                  {tc.actions}
                 </th>
               </tr>
             </thead>
@@ -138,19 +151,29 @@ function InventoryList({ searchTerm, statusFilter, refreshTrigger }: InventoryLi
                     {getStatusBadge(item.status)}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm">
-                    <button
-                      onClick={() => setSelectedItem(item)}
-                      className="text-blue-600 hover:text-blue-800 mr-3"
-                    >
-                      <Eye size={18} />
-                    </button>
+                    <div className="flex items-center gap-3">
+                      <button
+                        onClick={() => setSelectedItem(item)}
+                        className="text-blue-600 hover:text-blue-800"
+                        title={tc.view}
+                      >
+                        <Eye size={18} />
+                      </button>
+                      <button
+                        onClick={() => onEdit(item)}
+                        className="text-blue-600 hover:text-blue-800"
+                        title={tc.edit}
+                      >
+                        <Edit2 size={18} />
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}
               {items.length === 0 && (
                 <tr>
                   <td colSpan={7} className="px-6 py-8 text-center text-gray-500">
-                    No items found. Add your first inventory item to get started.
+                    {t.noItems}
                   </td>
                 </tr>
               )}
@@ -163,7 +186,7 @@ function InventoryList({ searchTerm, statusFilter, refreshTrigger }: InventoryLi
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg max-w-3xl w-full max-h-[90vh] overflow-y-auto p-6">
             <div className="flex justify-between items-start mb-4">
-              <h2 className="text-2xl font-bold text-gray-900">Item Details</h2>
+              <h2 className="text-2xl font-bold text-gray-900">{t.itemDetails}</h2>
               <button
                 onClick={() => setSelectedItem(null)}
                 className="text-gray-500 hover:text-gray-700"
@@ -174,101 +197,101 @@ function InventoryList({ searchTerm, statusFilter, refreshTrigger }: InventoryLi
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="text-sm font-medium text-gray-500">Item ID</label>
+                <label className="text-sm font-medium text-gray-500">{t.itemId}</label>
                 <p className="font-mono font-semibold text-lg">{selectedItem.item_id}</p>
               </div>
 
               <div>
-                <label className="text-sm font-medium text-gray-500">Status</label>
+                <label className="text-sm font-medium text-gray-500">{tc.status}</label>
                 <div className="mt-1">{getStatusBadge(selectedItem.status)}</div>
               </div>
 
               <div>
-                <label className="text-sm font-medium text-gray-500">Model</label>
+                <label className="text-sm font-medium text-gray-500">{t.model}</label>
                 <p className="text-gray-900">{selectedItem.model_family} {selectedItem.screen_size}"</p>
               </div>
 
               <div>
-                <label className="text-sm font-medium text-gray-500">Year</label>
+                <label className="text-sm font-medium text-gray-500">{t.year}</label>
                 <p className="text-gray-900">{selectedItem.year}</p>
               </div>
 
               <div>
-                <label className="text-sm font-medium text-gray-500">Chip</label>
+                <label className="text-sm font-medium text-gray-500">{t.chip}</label>
                 <p className="text-gray-900">{selectedItem.chip}</p>
               </div>
 
               <div>
-                <label className="text-sm font-medium text-gray-500">RAM</label>
+                <label className="text-sm font-medium text-gray-500">{t.ram}</label>
                 <p className="text-gray-900">{selectedItem.ram_gb} GB</p>
               </div>
 
               <div>
-                <label className="text-sm font-medium text-gray-500">Storage</label>
+                <label className="text-sm font-medium text-gray-500">{t.storage}</label>
                 <p className="text-gray-900">{selectedItem.storage_gb} GB</p>
               </div>
 
               <div>
-                <label className="text-sm font-medium text-gray-500">Condition Grade</label>
+                <label className="text-sm font-medium text-gray-500">{t.conditionGrade}</label>
                 <p className="text-gray-900">Grade {selectedItem.condition_grade}</p>
               </div>
 
               {selectedItem.serial_number && (
                 <div>
-                  <label className="text-sm font-medium text-gray-500">Serial Number</label>
+                  <label className="text-sm font-medium text-gray-500">{t.serialNumber}</label>
                   <p className="text-gray-900 font-mono">{selectedItem.serial_number}</p>
                 </div>
               )}
 
               {selectedItem.color && (
                 <div>
-                  <label className="text-sm font-medium text-gray-500">Color</label>
+                  <label className="text-sm font-medium text-gray-500">{t.color}</label>
                   <p className="text-gray-900">{selectedItem.color}</p>
                 </div>
               )}
 
               {selectedItem.battery_cycle_count && (
                 <div>
-                  <label className="text-sm font-medium text-gray-500">Battery Cycles</label>
+                  <label className="text-sm font-medium text-gray-500">{t.batteryCycleCount}</label>
                   <p className="text-gray-900">{selectedItem.battery_cycle_count}</p>
                 </div>
               )}
 
               {selectedItem.battery_health_percent && (
                 <div>
-                  <label className="text-sm font-medium text-gray-500">Battery Health</label>
+                  <label className="text-sm font-medium text-gray-500">{t.batteryHealth}</label>
                   <p className="text-gray-900">{selectedItem.battery_health_percent}%</p>
                 </div>
               )}
 
               <div>
-                <label className="text-sm font-medium text-gray-500">Purchase Cost</label>
+                <label className="text-sm font-medium text-gray-500">{t.purchaseCost}</label>
                 <p className="text-gray-900 font-semibold">${selectedItem.purchase_cost.toFixed(2)}</p>
               </div>
 
               <div>
-                <label className="text-sm font-medium text-gray-500">Purchase Date</label>
-                <p className="text-gray-900">{new Date(selectedItem.purchase_date).toLocaleDateString()}</p>
+                <label className="text-sm font-medium text-gray-500">{t.purchaseDate}</label>
+                <p className="text-gray-900">{new Date(selectedItem.purchase_date).toLocaleDateString('fr-FR')}</p>
               </div>
 
               <div className="col-span-2">
-                <label className="text-sm font-medium text-gray-500">Condition Summary</label>
+                <label className="text-sm font-medium text-gray-500">{t.conditionSummary}</label>
                 <p className="text-gray-900">{selectedItem.condition_summary}</p>
               </div>
 
               <div>
-                <label className="text-sm font-medium text-gray-500">Accessories</label>
+                <label className="text-sm font-medium text-gray-500">{t.accessories}</label>
                 <p className="text-gray-900">
-                  {selectedItem.charger_included ? 'Charger' : ''}
+                  {selectedItem.charger_included ? 'Chargeur' : ''}
                   {selectedItem.charger_included && selectedItem.box_included ? ' & ' : ''}
-                  {selectedItem.box_included ? 'Box' : ''}
-                  {!selectedItem.charger_included && !selectedItem.box_included ? 'None' : ''}
+                  {selectedItem.box_included ? 'Boîte' : ''}
+                  {!selectedItem.charger_included && !selectedItem.box_included ? t.none : ''}
                 </p>
               </div>
 
               {selectedItem.notes && (
                 <div className="col-span-2">
-                  <label className="text-sm font-medium text-gray-500">Notes</label>
+                  <label className="text-sm font-medium text-gray-500">{tc.notes}</label>
                   <p className="text-gray-900">{selectedItem.notes}</p>
                 </div>
               )}
@@ -277,9 +300,9 @@ function InventoryList({ searchTerm, statusFilter, refreshTrigger }: InventoryLi
             <div className="mt-6 flex justify-end">
               <button
                 onClick={() => setSelectedItem(null)}
-                className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
+                className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors font-medium"
               >
-                Close
+                {tc.close}
               </button>
             </div>
           </div>

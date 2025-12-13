@@ -1,12 +1,15 @@
 import { useState, useEffect } from 'react';
-import { Plus, Edit2, Check, X } from 'lucide-react';
+import { Plus, Edit2 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import type { Database } from '../lib/database.types';
+import { fr } from '../lib/translations';
 
 type Supplier = Database['public']['Tables']['suppliers']['Row'];
 type SupplierInsert = Database['public']['Tables']['suppliers']['Insert'];
 
 function Suppliers() {
+  const t = fr.suppliers;
+  const tc = fr.common;
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [isAddingNew, setIsAddingNew] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -38,7 +41,7 @@ function Suppliers() {
     e.preventDefault();
 
     if (!formData.supplier_code || !formData.supplier_name || !formData.supplier_type) {
-      alert('Please fill in all required fields');
+      alert('Veuillez remplir tous les champs requis');
       return;
     }
 
@@ -55,7 +58,7 @@ function Suppliers() {
 
       if (error) {
         console.error('Error updating supplier:', error);
-        alert('Error updating supplier');
+        alert('Erreur lors de la mise à jour du fournisseur');
       } else {
         setEditingId(null);
         loadSuppliers();
@@ -67,7 +70,7 @@ function Suppliers() {
 
       if (error) {
         console.error('Error adding supplier:', error);
-        alert('Error adding supplier. Code may already exist.');
+        alert('Erreur lors de l\'ajout du fournisseur. Le code existe peut-être déjà.');
       } else {
         setIsAddingNew(false);
         loadSuppliers();
@@ -99,37 +102,42 @@ function Suppliers() {
     });
   };
 
-  const supplierTypes = ['wholesaler', 'trade-in', 'marketplace', 'other'];
+  const supplierTypes = [
+    { value: 'wholesaler', label: t.wholesaler },
+    { value: 'trade-in', label: t.tradeIn },
+    { value: 'marketplace', label: t.marketplace },
+    { value: 'other', label: t.other },
+  ];
 
   return (
-    <div className="p-8">
+    <div className="p-8 bg-white min-h-screen">
       <div className="max-w-7xl mx-auto">
         <div className="flex justify-between items-center mb-8">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">Suppliers</h1>
-            <p className="text-gray-600 mt-1">Manage your inventory suppliers</p>
+            <h1 className="text-3xl font-bold text-gray-900">{t.title}</h1>
+            <p className="text-gray-600 mt-1">{t.subtitle}</p>
           </div>
           {!isAddingNew && !editingId && (
             <button
               onClick={() => setIsAddingNew(true)}
-              className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+              className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors font-medium"
             >
-              <Plus size={20} />
-              Add Supplier
+              <Plus size={18} />
+              {t.addSupplier}
             </button>
           )}
         </div>
 
         {(isAddingNew || editingId) && (
-          <div className="bg-white rounded-lg shadow-md p-6 mb-6">
+          <div className="bg-white border border-gray-200 rounded-lg p-6 mb-6">
             <h2 className="text-xl font-semibold mb-4">
-              {editingId ? 'Edit Supplier' : 'Add New Supplier'}
+              {editingId ? t.editSupplier : t.addSupplier}
             </h2>
             <form onSubmit={handleSubmit}>
               <div className="grid grid-cols-2 gap-4 mb-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Supplier Code *
+                    {t.supplierCode} *
                   </label>
                   <input
                     type="text"
@@ -140,12 +148,12 @@ function Suppliers() {
                     placeholder="DTC"
                     disabled={!!editingId}
                   />
-                  <p className="text-xs text-gray-500 mt-1">3-6 uppercase characters</p>
+                  <p className="text-xs text-gray-500 mt-1">{t.codeHelper}</p>
                 </div>
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Supplier Name *
+                    {t.supplierName} *
                   </label>
                   <input
                     type="text"
@@ -158,7 +166,7 @@ function Suppliers() {
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Supplier Type *
+                    {t.supplierType} *
                   </label>
                   <select
                     value={formData.supplier_type}
@@ -166,8 +174,8 @@ function Suppliers() {
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                   >
                     {supplierTypes.map((type) => (
-                      <option key={type} value={type}>
-                        {type.charAt(0).toUpperCase() + type.slice(1)}
+                      <option key={type.value} value={type.value}>
+                        {type.label}
                       </option>
                     ))}
                   </select>
@@ -175,7 +183,7 @@ function Suppliers() {
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Contact Name
+                    {t.contactName}
                   </label>
                   <input
                     type="text"
@@ -187,7 +195,7 @@ function Suppliers() {
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Contact Phone
+                    {t.contactPhone}
                   </label>
                   <input
                     type="text"
@@ -199,7 +207,7 @@ function Suppliers() {
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Contact Email
+                    {t.contactEmail}
                   </label>
                   <input
                     type="email"
@@ -212,7 +220,7 @@ function Suppliers() {
 
               <div className="mb-4">
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Notes
+                  {tc.notes}
                 </label>
                 <textarea
                   value={formData.notes || ''}
@@ -230,52 +238,50 @@ function Suppliers() {
                     onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })}
                     className="w-4 h-4 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
                   />
-                  <span className="text-sm font-medium text-gray-700">Active</span>
+                  <span className="text-sm font-medium text-gray-700">{tc.active}</span>
                 </label>
               </div>
 
               <div className="flex gap-3">
                 <button
                   type="submit"
-                  className="flex items-center gap-2 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors"
+                  className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors font-medium"
                 >
-                  <Check size={18} />
-                  {editingId ? 'Update' : 'Save'}
+                  {editingId ? tc.update : tc.save}
                 </button>
                 <button
                   type="button"
                   onClick={handleCancel}
-                  className="flex items-center gap-2 bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600 transition-colors"
+                  className="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300 transition-colors font-medium"
                 >
-                  <X size={18} />
-                  Cancel
+                  {tc.cancel}
                 </button>
               </div>
             </form>
           </div>
         )}
 
-        <div className="bg-white rounded-lg shadow-md overflow-hidden">
+        <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
           <table className="w-full">
-            <thead className="bg-gray-50">
+            <thead className="bg-gray-50 border-b border-gray-200">
               <tr>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Code
+                  {t.code}
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Name
+                  {t.name}
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Type
+                  {t.type}
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Contact
+                  {t.contact}
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Status
+                  {tc.status}
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Actions
+                  {tc.actions}
                 </th>
               </tr>
             </thead>
@@ -291,7 +297,7 @@ function Suppliers() {
                     <span className="text-gray-900">{supplier.supplier_name}</span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <span className="inline-flex px-2 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-800">
+                    <span className="inline-flex px-3 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-700">
                       {supplier.supplier_type}
                     </span>
                   </td>
@@ -300,12 +306,12 @@ function Suppliers() {
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     {supplier.is_active ? (
-                      <span className="inline-flex px-2 py-1 text-xs font-medium rounded-full bg-green-100 text-green-800">
-                        Active
+                      <span className="inline-flex px-3 py-1 text-xs font-medium rounded-full bg-green-100 text-green-700">
+                        {tc.active}
                       </span>
                     ) : (
-                      <span className="inline-flex px-2 py-1 text-xs font-medium rounded-full bg-gray-100 text-gray-800">
-                        Inactive
+                      <span className="inline-flex px-3 py-1 text-xs font-medium rounded-full bg-gray-100 text-gray-700">
+                        {tc.inactive}
                       </span>
                     )}
                   </td>
@@ -322,7 +328,7 @@ function Suppliers() {
               {suppliers.length === 0 && (
                 <tr>
                   <td colSpan={6} className="px-6 py-8 text-center text-gray-500">
-                    No suppliers found. Add your first supplier to get started.
+                    {t.noSuppliers}
                   </td>
                 </tr>
               )}
