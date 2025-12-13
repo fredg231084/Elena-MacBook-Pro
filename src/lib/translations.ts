@@ -175,7 +175,7 @@ export const fr = {
   dashboard: {
     title: 'Tableau de bord d\'Elena',
     subtitle: 'Vue d\'ensemble de ton activité',
-    greeting: 'Bonjour Elena 👋',
+    greeting: 'Bonjour mon amour 😁',
     period: 'Ce mois-ci',
     avgMargin: 'Marge moyenne',
     unitsSold: 'Unités vendues',
