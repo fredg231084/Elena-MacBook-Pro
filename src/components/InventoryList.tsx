@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Edit2, Eye } from 'lucide-react';
+import { Edit2, Eye, Trash2 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import type { Database } from '../lib/database.types';
 import { fr } from '../lib/translations';
@@ -21,6 +21,7 @@ function InventoryList({ searchTerm, statusFilter, refreshTrigger, onEdit }: Inv
   const [items, setItems] = useState<InventoryItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedItem, setSelectedItem] = useState<InventoryItem | null>(null);
+  const [deletingItem, setDeletingItem] = useState<InventoryItem | null>(null);
 
   useEffect(() => {
     loadItems();
@@ -54,6 +55,38 @@ function InventoryList({ searchTerm, statusFilter, refreshTrigger, onEdit }: Inv
       setItems(data || []);
     }
     setLoading(false);
+  };
+
+  const handleDelete = async (item: InventoryItem) => {
+    // Protection: ne pas supprimer si l'item est vendu
+    if (item.status === 'sold') {
+      alert('❌ Impossible de supprimer cet article car il a été vendu. Les articles vendus doivent être conservés pour l\'historique des ventes.');
+      return;
+    }
+
+    // Demander confirmation
+    const confirmDelete = window.confirm(
+      `Êtes-vous sûr de vouloir supprimer l'article ${item.item_id}?\n\nCette action est irréversible.`
+    );
+
+    if (!confirmDelete) return;
+
+    setDeletingItem(item);
+
+    const { error } = await supabase
+      .from('inventory_items')
+      .delete()
+      .eq('id', item.id);
+
+    if (error) {
+      console.error('Error deleting item:', error);
+      alert('Erreur lors de la suppression de l\'article.');
+    } else {
+      alert('✅ Article supprimé avec succès!');
+      loadItems(); // Recharger la liste
+    }
+
+    setDeletingItem(null);
   };
 
   const getStatusBadge = (status: string) => {
@@ -165,6 +198,18 @@ function InventoryList({ searchTerm, statusFilter, refreshTrigger, onEdit }: Inv
                         title={tc.edit}
                       >
                         <Edit2 size={18} />
+                      </button>
+                      <button
+                        onClick={() => handleDelete(item)}
+                        className={`${
+                          item.status === 'sold' 
+                            ? 'text-gray-400 cursor-not-allowed' 
+                            : 'text-red-600 hover:text-red-800'
+                        }`}
+                        title={item.status === 'sold' ? 'Impossible de supprimer (vendu)' : tc.delete}
+                        disabled={item.status === 'sold' || deletingItem?.id === item.id}
+                      >
+                        <Trash2 size={18} />
                       </button>
                     </div>
                   </td>
