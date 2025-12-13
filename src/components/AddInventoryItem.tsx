@@ -1,18 +1,25 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Check, X } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import type { Database } from '../lib/database.types';
+import { fr } from '../lib/translations';
 
 type Supplier = Database['public']['Tables']['suppliers']['Row'];
+type PurchaseOrder = Database['public']['Tables']['purchase_orders']['Row'];
+type InventoryItem = Database['public']['Tables']['inventory_items']['Row'];
 type InventoryInsert = Database['public']['Tables']['inventory_items']['Insert'];
 
-interface AddInventoryItemProps {
+interface InventoryItemFormProps {
   suppliers: Supplier[];
+  editingItem?: InventoryItem | null;
   onCancel: () => void;
   onSuccess: () => void;
 }
 
-function AddInventoryItem({ suppliers, onCancel, onSuccess }: AddInventoryItemProps) {
+function InventoryItemForm({ suppliers, editingItem, onCancel, onSuccess }: InventoryItemFormProps) {
+  const t = fr.inventory;
+  const tc = fr.common;
+  const [purchaseOrders, setPurchaseOrders] = useState<PurchaseOrder[]>([]);
   const [formData, setFormData] = useState<Partial<InventoryInsert>>({
     supplier_id: '',
     supplier_item_number: '',
@@ -29,36 +36,79 @@ function AddInventoryItem({ suppliers, onCancel, onSuccess }: AddInventoryItemPr
     purchase_cost: 0,
     purchase_date: new Date().toISOString().split('T')[0],
     status: 'in_stock',
+    po_id: null,
   });
+
+  useEffect(() => {
+    if (editingItem) {
+      setFormData(editingItem);
+    }
+  }, [editingItem]);
+
+  useEffect(() => {
+    if (formData.supplier_id) {
+      loadPurchaseOrders(formData.supplier_id);
+    }
+  }, [formData.supplier_id]);
+
+  const loadPurchaseOrders = async (supplierId: string) => {
+    const { data, error } = await supabase
+      .from('purchase_orders')
+      .select('*')
+      .eq('supplier_id', supplierId)
+      .order('order_date', { ascending: false });
+
+    if (error) {
+      console.error('Error loading POs:', error);
+    } else {
+      setPurchaseOrders(data || []);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!formData.supplier_id || !formData.supplier_item_number) {
-      alert('Please fill in all required fields');
+      alert('Veuillez remplir tous les champs requis');
       return;
     }
 
     const selectedSupplier = suppliers.find(s => s.id === formData.supplier_id);
     if (!selectedSupplier) {
-      alert('Please select a valid supplier');
+      alert('Veuillez sélectionner un fournisseur valide');
       return;
     }
 
     const itemId = `${selectedSupplier.supplier_code}${formData.supplier_item_number}`;
 
-    const { error } = await supabase
-      .from('inventory_items')
-      .insert([{
-        ...formData,
-        item_id: itemId,
-      } as InventoryInsert]);
+    if (editingItem) {
+      // FIX: Exclure tous les champs en lecture seule (id, item_id, created_at, updated_at)
+      const { id, item_id, created_at, updated_at, ...updateData } = formData as InventoryItem;
+      const { error } = await supabase
+        .from('inventory_items')
+        .update(updateData)
+        .eq('id', editingItem.id);
 
-    if (error) {
-      console.error('Error adding item:', error);
-      alert('Error adding item. Item ID may already exist.');
+      if (error) {
+        console.error('Error updating item:', error);
+        alert('Erreur lors de la mise à jour de l\'article');
+      } else {
+        onSuccess();
+      }
     } else {
-      onSuccess();
+      const { error } = await supabase
+        .from('inventory_items')
+        .insert([{
+          ...formData,
+          item_id: itemId,
+        } as InventoryInsert]);
+
+      if (error) {
+        console.error('Error adding item:', error);
+        alert('Erreur lors de l\'ajout de l\'article. L\'ID existe peut-être déjà.');
+      } else {
+        onSuccess();
+      }
     }
   };
 
@@ -68,24 +118,27 @@ function AddInventoryItem({ suppliers, onCancel, onSuccess }: AddInventoryItemPr
   const conditionGrades = ['A', 'B', 'C'];
 
   return (
-    <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-      <h2 className="text-xl font-semibold mb-4">Add New Item</h2>
+    <div className="bg-white border border-gray-200 rounded-lg p-6 mb-6">
+      <h2 className="text-xl font-semibold mb-4">
+        {editingItem ? t.editItem : t.addNewItem}
+      </h2>
       <form onSubmit={handleSubmit}>
         <div className="space-y-6">
           <div>
-            <h3 className="text-lg font-medium text-gray-900 mb-3">Identification</h3>
+            <h3 className="text-lg font-medium text-gray-900 mb-3">{t.identification}</h3>
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Supplier *
+                  {t.supplier} *
                 </label>
                 <select
                   value={formData.supplier_id}
-                  onChange={(e) => setFormData({ ...formData, supplier_id: e.target.value })}
+                  onChange={(e) => setFormData({ ...formData, supplier_id: e.target.value, po_id: null })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                   required
+                  disabled={!!editingItem}
                 >
-                  <option value="">Select Supplier</option>
+                  <option value="">{t.selectSupplier}</option>
                   {suppliers.map((supplier) => (
                     <option key={supplier.id} value={supplier.id}>
                       {supplier.supplier_code} - {supplier.supplier_name}
@@ -96,7 +149,7 @@ function AddInventoryItem({ suppliers, onCancel, onSuccess }: AddInventoryItemPr
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Supplier Item Number *
+                  {t.supplierItemNumber} *
                 </label>
                 <input
                   type="text"
@@ -105,12 +158,32 @@ function AddInventoryItem({ suppliers, onCancel, onSuccess }: AddInventoryItemPr
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                   placeholder="286775"
                   required
+                  disabled={!!editingItem}
                 />
+              </div>
+
+              <div className="col-span-2">
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  {t.purchaseOrder}
+                </label>
+                <select
+                  value={formData.po_id || ''}
+                  onChange={(e) => setFormData({ ...formData, po_id: e.target.value || null })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  disabled={!formData.supplier_id}
+                >
+                  <option value="">{t.noPO}</option>
+                  {purchaseOrders.map((po) => (
+                    <option key={po.id} value={po.id}>
+                      {po.po_number} - {new Date(po.order_date).toLocaleDateString('fr-FR')} ({po.status})
+                    </option>
+                  ))}
+                </select>
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Model Family *
+                  {t.modelFamily} *
                 </label>
                 <select
                   value={formData.model_family}
@@ -125,7 +198,7 @@ function AddInventoryItem({ suppliers, onCancel, onSuccess }: AddInventoryItemPr
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Screen Size *
+                  {t.screenSize} *
                 </label>
                 <select
                   value={formData.screen_size}
@@ -140,7 +213,7 @@ function AddInventoryItem({ suppliers, onCancel, onSuccess }: AddInventoryItemPr
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Chip *
+                  {t.chip} *
                 </label>
                 <select
                   value={formData.chip}
@@ -155,7 +228,7 @@ function AddInventoryItem({ suppliers, onCancel, onSuccess }: AddInventoryItemPr
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  RAM (GB) *
+                  {t.ram} *
                 </label>
                 <input
                   type="number"
@@ -169,7 +242,7 @@ function AddInventoryItem({ suppliers, onCancel, onSuccess }: AddInventoryItemPr
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Storage (GB) *
+                  {t.storage} *
                 </label>
                 <input
                   type="number"
@@ -183,7 +256,7 @@ function AddInventoryItem({ suppliers, onCancel, onSuccess }: AddInventoryItemPr
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Year *
+                  {t.year} *
                 </label>
                 <input
                   type="number"
@@ -198,7 +271,7 @@ function AddInventoryItem({ suppliers, onCancel, onSuccess }: AddInventoryItemPr
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Serial Number
+                  {t.serialNumber}
                 </label>
                 <input
                   type="text"
@@ -210,51 +283,48 @@ function AddInventoryItem({ suppliers, onCancel, onSuccess }: AddInventoryItemPr
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Color
+                  {t.color}
                 </label>
                 <input
                   type="text"
                   value={formData.color || ''}
                   onChange={(e) => setFormData({ ...formData, color: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="Space Gray, Silver, etc."
                 />
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Keyboard Layout
+                  {t.keyboardLayout}
                 </label>
                 <input
                   type="text"
                   value={formData.keyboard_layout || ''}
                   onChange={(e) => setFormData({ ...formData, keyboard_layout: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="US, Canadian, etc."
                 />
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  OS Installed
+                  {t.osInstalled}
                 </label>
                 <input
                   type="text"
                   value={formData.os_installed || ''}
                   onChange={(e) => setFormData({ ...formData, os_installed: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="macOS Sonoma, etc."
                 />
               </div>
             </div>
           </div>
 
           <div>
-            <h3 className="text-lg font-medium text-gray-900 mb-3">Condition</h3>
+            <h3 className="text-lg font-medium text-gray-900 mb-3">{t.condition}</h3>
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Condition Grade *
+                  {t.conditionGrade} *
                 </label>
                 <select
                   value={formData.condition_grade}
@@ -269,7 +339,7 @@ function AddInventoryItem({ suppliers, onCancel, onSuccess }: AddInventoryItemPr
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Battery Cycle Count
+                  {t.batteryCycleCount}
                 </label>
                 <input
                   type="number"
@@ -282,7 +352,7 @@ function AddInventoryItem({ suppliers, onCancel, onSuccess }: AddInventoryItemPr
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Battery Health %
+                  {t.batteryHealth}
                 </label>
                 <input
                   type="number"
@@ -296,16 +366,17 @@ function AddInventoryItem({ suppliers, onCancel, onSuccess }: AddInventoryItemPr
 
               <div className="col-span-2">
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Condition Summary *
+                  {t.conditionSummary} *
                 </label>
                 <textarea
                   value={formData.condition_summary}
                   onChange={(e) => setFormData({ ...formData, condition_summary: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                   rows={2}
-                  placeholder="Brief description of item condition"
+                  placeholder={t.conditionSummaryHelper}
                   required
                 />
+                <p className="text-xs text-gray-500 mt-1 italic">{t.conditionSummaryHelper}</p>
               </div>
 
               <div className="flex items-center gap-4">
@@ -316,7 +387,7 @@ function AddInventoryItem({ suppliers, onCancel, onSuccess }: AddInventoryItemPr
                     onChange={(e) => setFormData({ ...formData, charger_included: e.target.checked })}
                     className="w-4 h-4 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
                   />
-                  <span className="text-sm font-medium text-gray-700">Charger Included</span>
+                  <span className="text-sm font-medium text-gray-700">{t.chargerIncluded}</span>
                 </label>
               </div>
 
@@ -328,18 +399,18 @@ function AddInventoryItem({ suppliers, onCancel, onSuccess }: AddInventoryItemPr
                     onChange={(e) => setFormData({ ...formData, box_included: e.target.checked })}
                     className="w-4 h-4 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
                   />
-                  <span className="text-sm font-medium text-gray-700">Box Included</span>
+                  <span className="text-sm font-medium text-gray-700">{t.boxIncluded}</span>
                 </label>
               </div>
             </div>
           </div>
 
           <div>
-            <h3 className="text-lg font-medium text-gray-900 mb-3">Purchase Details</h3>
+            <h3 className="text-lg font-medium text-gray-900 mb-3">{t.purchaseDetails}</h3>
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Purchase Cost ($) *
+                  {t.purchaseCost} *
                 </label>
                 <input
                   type="number"
@@ -354,7 +425,7 @@ function AddInventoryItem({ suppliers, onCancel, onSuccess }: AddInventoryItemPr
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Purchase Date *
+                  {t.purchaseDate} *
                 </label>
                 <input
                   type="date"
@@ -367,14 +438,16 @@ function AddInventoryItem({ suppliers, onCancel, onSuccess }: AddInventoryItemPr
 
               <div className="col-span-2">
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Notes
+                  {tc.notes}
                 </label>
                 <textarea
                   value={formData.notes || ''}
                   onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                   rows={2}
+                  placeholder={tc.notesHelper}
                 />
+                <p className="text-xs text-gray-500 mt-1 italic">{tc.notesHelper}</p>
               </div>
             </div>
           </div>
@@ -383,18 +456,16 @@ function AddInventoryItem({ suppliers, onCancel, onSuccess }: AddInventoryItemPr
         <div className="flex gap-3 mt-6">
           <button
             type="submit"
-            className="flex items-center gap-2 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors"
+            className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors font-medium"
           >
-            <Check size={18} />
-            Save Item
+            {editingItem ? tc.update : tc.save}
           </button>
           <button
             type="button"
             onClick={onCancel}
-            className="flex items-center gap-2 bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600 transition-colors"
+            className="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300 transition-colors font-medium"
           >
-            <X size={18} />
-            Cancel
+            {tc.cancel}
           </button>
         </div>
       </form>
@@ -402,4 +473,4 @@ function AddInventoryItem({ suppliers, onCancel, onSuccess }: AddInventoryItemPr
   );
 }
 
-export default AddInventoryItem;
+export default InventoryItemForm;
