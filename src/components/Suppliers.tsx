@@ -112,20 +112,23 @@ function Suppliers() {
   return (
     <div className="p-8 bg-white min-h-screen">
       <div className="max-w-7xl mx-auto">
-        <div className="flex justify-between items-center mb-8">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">{t.title}</h1>
-            <p className="text-gray-600 mt-1">{t.subtitle}</p>
+        <div className="mb-8">
+          <div className="flex justify-between items-center mb-4">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900">{t.title}</h1>
+              <p className="text-gray-600 mt-1">{t.subtitle}</p>
+            </div>
+            {!isAddingNew && !editingId && (
+              <button
+                onClick={() => setIsAddingNew(true)}
+                className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors font-medium"
+              >
+                <Plus size={18} />
+                {t.addSupplier}
+              </button>
+            )}
           </div>
-          {!isAddingNew && !editingId && (
-            <button
-              onClick={() => setIsAddingNew(true)}
-              className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors font-medium"
-            >
-              <Plus size={18} />
-              {t.addSupplier}
-            </button>
-          )}
+          <p className="text-sm text-gray-600 italic">{t.helperText}</p>
         </div>
 
         {(isAddingNew || editingId) && (
@@ -278,7 +281,7 @@ function Suppliers() {
                   {t.contact}
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  {tc.status}
+                  {tc.activeRelation}
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   {tc.actions}
@@ -336,6 +339,10 @@ function Suppliers() {
           </table>
         </div>
       </div>
+
+      <footer className="mt-8 text-center text-sm text-gray-500">
+        {tc.footer}
+      </footer>
     </div>
   );
 }

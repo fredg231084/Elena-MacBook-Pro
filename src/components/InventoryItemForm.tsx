@@ -82,10 +82,11 @@ function InventoryItemForm({ suppliers, editingItem, onCancel, onSuccess }: Inve
     const itemId = `${selectedSupplier.supplier_code}${formData.supplier_item_number}`;
 
     if (editingItem) {
+      const { id, item_id, created_at, ...updateData } = formData as InventoryItem;
       const { error } = await supabase
         .from('inventory_items')
         .update({
-          ...formData,
+          ...updateData,
           updated_at: new Date().toISOString(),
         })
         .eq('id', editingItem.id);
@@ -374,8 +375,10 @@ function InventoryItemForm({ suppliers, editingItem, onCancel, onSuccess }: Inve
                   onChange={(e) => setFormData({ ...formData, condition_summary: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                   rows={2}
+                  placeholder={t.conditionSummaryHelper}
                   required
                 />
+                <p className="text-xs text-gray-500 mt-1 italic">{t.conditionSummaryHelper}</p>
               </div>
 
               <div className="flex items-center gap-4">
@@ -444,7 +447,9 @@ function InventoryItemForm({ suppliers, editingItem, onCancel, onSuccess }: Inve
                   onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                   rows={2}
+                  placeholder={tc.notesHelper}
                 />
+                <p className="text-xs text-gray-500 mt-1 italic">{tc.notesHelper}</p>
               </div>
             </div>
           </div>

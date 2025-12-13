@@ -42,8 +42,8 @@ function App() {
     <div className="flex h-screen bg-gray-50">
       <aside className="w-64 bg-[#1a1d29] text-white flex flex-col">
         <div className="p-6 border-b border-gray-800">
-          <h1 className="text-xl font-bold">MacBook Depot</h1>
-          <p className="text-xs text-gray-400 mt-1">Inventory Management</p>
+          <h1 className="text-xl font-bold">UnitFlow</h1>
+          <p className="text-xs text-gray-400 mt-1">Espace de travail d'Elena</p>
         </div>
 
         <nav className="flex-1 p-4">

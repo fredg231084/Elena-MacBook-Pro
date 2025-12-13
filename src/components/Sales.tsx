@@ -3,6 +3,7 @@ import { Plus, DollarSign } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import type { Database } from '../lib/database.types';
 import AddSale from './AddSale';
+import { fr } from '../lib/translations';
 
 type Sale = Database['public']['Tables']['sales']['Row'] & {
   inventory_items?: Database['public']['Tables']['inventory_items']['Row'];
@@ -10,9 +11,12 @@ type Sale = Database['public']['Tables']['sales']['Row'] & {
 };
 
 function Sales() {
+  const t = fr.sales;
+  const tc = fr.common;
   const [sales, setSales] = useState<Sale[]>([]);
   const [isAddingSale, setIsAddingSale] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [showSuccessMessage, setShowSuccessMessage] = useState(false);
 
   useEffect(() => {
     loadSales();
@@ -39,7 +43,11 @@ function Sales() {
 
   const handleSaleAdded = () => {
     setIsAddingSale(false);
+    setShowSuccessMessage(true);
     loadSales();
+    setTimeout(() => {
+      setShowSuccessMessage(false);
+    }, 5000);
   };
 
   const calculateProfit = (salePrice: number, purchaseCost: number) => {
@@ -53,10 +61,10 @@ function Sales() {
 
   if (loading) {
     return (
-      <div className="p-8">
+      <div className="p-8 bg-white min-h-screen">
         <div className="max-w-7xl mx-auto">
-          <div className="bg-white rounded-lg shadow-md p-8 text-center">
-            <p className="text-gray-500">Loading sales...</p>
+          <div className="bg-white rounded-lg border border-gray-200 p-8 text-center">
+            <p className="text-gray-500">{tc.loading}...</p>
           </div>
         </div>
       </div>
@@ -72,49 +80,58 @@ function Sales() {
   }, 0);
 
   return (
-    <div className="p-8">
+    <div className="p-8 bg-white min-h-screen">
       <div className="max-w-7xl mx-auto">
-        <div className="flex justify-between items-center mb-8">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">Sales</h1>
-            <p className="text-gray-600 mt-1">Track and manage your sales</p>
+        <div className="mb-8">
+          <div className="flex justify-between items-center mb-4">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900">{t.title}</h1>
+              <p className="text-gray-600 mt-1">{t.subtitle}</p>
+            </div>
+            {!isAddingSale && (
+              <button
+                onClick={() => setIsAddingSale(true)}
+                className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors font-medium"
+              >
+                <Plus size={18} />
+                {t.addSale}
+              </button>
+            )}
           </div>
-          {!isAddingSale && (
-            <button
-              onClick={() => setIsAddingSale(true)}
-              className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
-            >
-              <Plus size={20} />
-              Add Sale
-            </button>
-          )}
+          <p className="text-sm text-gray-600 italic">{t.helperText}</p>
         </div>
 
+        {showSuccessMessage && (
+          <div className="mb-6 bg-green-50 border border-green-200 rounded-lg p-4">
+            <p className="text-green-800 font-medium text-center">{t.saleSuccess}</p>
+          </div>
+        )}
+
         <div className="grid grid-cols-3 gap-6 mb-8">
-          <div className="bg-white rounded-lg shadow-md p-6">
+          <div className="bg-white rounded-lg border border-gray-200 p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Total Sales</p>
+                <p className="text-sm font-medium text-gray-600">{t.totalSales}</p>
                 <p className="text-3xl font-bold text-gray-900 mt-2">{sales.length}</p>
               </div>
               <DollarSign className="text-blue-600" size={40} />
             </div>
           </div>
 
-          <div className="bg-white rounded-lg shadow-md p-6">
+          <div className="bg-white rounded-lg border border-gray-200 p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Total Revenue</p>
+                <p className="text-sm font-medium text-gray-600">{t.totalRevenue}</p>
                 <p className="text-3xl font-bold text-gray-900 mt-2">${totalRevenue.toFixed(2)}</p>
               </div>
               <DollarSign className="text-green-600" size={40} />
             </div>
           </div>
 
-          <div className="bg-white rounded-lg shadow-md p-6">
+          <div className="bg-white rounded-lg border border-gray-200 p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Total Profit</p>
+                <p className="text-sm font-medium text-gray-600">{t.totalProfit}</p>
                 <p className="text-3xl font-bold text-gray-900 mt-2">${totalProfit.toFixed(2)}</p>
               </div>
               <DollarSign className="text-blue-600" size={40} />
@@ -129,37 +146,41 @@ function Sales() {
           />
         )}
 
-        <div className="bg-white rounded-lg shadow-md overflow-hidden">
+        <div className="mb-4">
+          <h2 className="text-xl font-semibold text-gray-900">{t.salesHistory}</h2>
+        </div>
+
+        <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full">
-              <thead className="bg-gray-50">
+              <thead className="bg-gray-50 border-b border-gray-200">
                 <tr>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Date
+                    {t.date}
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Item ID
+                    {fr.inventory.itemId}
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Model
+                    {fr.inventory.model}
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Customer
+                    {t.customer}
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Cost
+                    {fr.inventory.cost}
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Sale Price
+                    {t.salePrice}
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Profit
+                    {t.profit}
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Margin
+                    {t.margin}
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Channel
+                    {t.channelLabel}
                   </th>
                 </tr>
               </thead>
@@ -188,7 +209,7 @@ function Sales() {
                           : 'N/A'}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {sale.customers?.name || 'Walk-in'}
+                        {sale.customers?.name || t.noCustomer}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                         ${sale.inventory_items?.purchase_cost.toFixed(2) || '0.00'}
@@ -217,7 +238,7 @@ function Sales() {
                 {sales.length === 0 && (
                   <tr>
                     <td colSpan={9} className="px-6 py-8 text-center text-gray-500">
-                      No sales recorded yet. Add your first sale to get started.
+                      {t.noSales}
                     </td>
                   </tr>
                 )}
@@ -226,6 +247,10 @@ function Sales() {
           </div>
         </div>
       </div>
+
+      <footer className="mt-8 text-center text-sm text-gray-500">
+        {tc.footer}
+      </footer>
     </div>
   );
 }
