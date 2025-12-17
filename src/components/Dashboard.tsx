@@ -3,6 +3,7 @@ import { DollarSign, Package, ShoppingCart, TrendingUp, Users } from 'lucide-rea
 import { supabase } from '../lib/supabase';
 import type { Database } from '../lib/database.types';
 import { fr } from '../lib/translations';
+import TargetWidget from './TargetWidget';
 
 type InventoryItem = Database['public']['Tables']['inventory_items']['Row'] & {
   suppliers?: Database['public']['Tables']['suppliers']['Row'];
@@ -259,6 +260,13 @@ function Dashboard() {
         <div className="mb-6">
           <p className="text-2xl text-gray-700 mb-2">{t.greeting}</p>
         </div>
+        {/* Widget Targets */}
+<TargetWidget
+  revenue={stats.totalRevenue}
+  profit={stats.totalProfit}
+  units={stats.unitsSold}
+  margin={stats.avgMargin}
+/>
 
         <div className="flex justify-between items-center mb-8">
           <div>
